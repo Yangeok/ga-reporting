@@ -11,8 +11,8 @@ import numpy as np
 import json
 import csv
 
-TOKEN_FILE_NAME = 'credentials.dat'
-CLIENT_SECRETS = 'client_secrets.json'
+TOKEN_FILE_NAME = 'credentials.dat' # client_secrets.json을 가공해서 나오는 파일입니다.
+CLIENT_SECRETS = 'client_secrets.json' # google developers에서 이 파일을 다운받을 수 있습니다.
 SCOPES = 'https://www.googleapis.com/auth/analytics.readonly'
 VIEW_ID = '181430824' # query explorer에서 viewId를 찾아 붙여넣어주세요
 
@@ -33,25 +33,25 @@ def prepare_credentials():
     return credentials
   
 def initialize_service():
-    with open('credentials.dat') as json_file:
-      data = json.load(json_file)
+    # with open('credentials.dat') as json_file:
+    #   data = json.load(json_file)
 
-    credentials = client.OAuth2Credentials(
-      client_id= data['client_id'],
-      client_secret= data['client_secret'],
-      access_token= data['access_token'],
-      refresh_token= data['refresh_token'],
-      token_expiry= data['token_expiry'],
-      token_uri= data['token_uri'],
-      user_agent= 'null',
-    )
-    http = httplib2.Http()
-    credentials.refresh(http)
-    credentials.authorize(http)
-    # credentials = prepare_credentials()
-    # print(credentials)
+    # credentials = client.OAuth2Credentials(
+    #   client_id= data['client_id'],
+    #   client_secret= data['client_secret'],
+    #   access_token= data['access_token'],
+    #   refresh_token= data['refresh_token'],
+    #   token_expiry= data['token_expiry'],
+    #   token_uri= data['token_uri'],
+    #   user_agent= 'null',
+    # )
     # http = httplib2.Http()
-    # http = credentials.authorize(http)
+    # credentials.refresh(http)
+    # credentials.authorize(http)
+    credentials = prepare_credentials()
+    print(credentials)
+    http = httplib2.Http()
+    http = credentials.authorize(http)
 
     return build('analyticsreporting', 'v4', http=http)
 
