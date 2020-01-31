@@ -9,11 +9,12 @@ import httplib2
 import pandas as pd
 import numpy as np
 import json
+import csv
 
 TOKEN_FILE_NAME = 'credentials.dat'
 CLIENT_SECRETS = 'client_secrets.json'
 SCOPES = 'https://www.googleapis.com/auth/analytics.readonly'
-VIEW_ID = '181430824'
+VIEW_ID = '181430824' # query explorer에서 viewId를 찾아 붙여넣어주세요
 
 def prepare_credentials():
     parser = argparse.ArgumentParser(parents=[tools.argparser])
@@ -35,7 +36,6 @@ def initialize_service():
     with open('credentials.dat') as json_file:
       data = json.load(json_file)
 
-
     credentials = client.OAuth2Credentials(
       client_id= data['client_id'],
       client_secret= data['client_secret'],
@@ -55,67 +55,45 @@ def initialize_service():
 
     return build('analyticsreporting', 'v4', http=http)
 
-def get_report(analytics):
-  # body = {
-  #   "reportRequests":[
-  #   {
-  #     "viewId": VIEW_ID,
-  #     "dateRanges":[
-  #       {
-  #         "startDate":"2015-06-15",
-  #         "endDate":"today"
-  #       }],
-  #     "metrics":[
-  #       {
-  #         "expression":"ga:users"
-  #       }],
-  #     "dimensions": [
-  #       {
-  #         "name":"ga:browser"
-  #       }]
-  #     }]
-  # }
+def get_report(analytics, client_id):
   body = {
-        'reportRequests': [{
-            'viewId': VIEW_ID,
-            'user': {
-              'type': 'CLIENT_ID', 
-              'userId': '662523190.1580044226'
-            },
-            'dateRanges': {
-              'startDate': '7daysago', 
-              'endDate': 'today'
-            }
+          'viewId': VIEW_ID,
+          'user': {
+            'type': 'CLIENT_ID', 
+            'userId': client_id
+          },
+          'dateRange': {
+            'endDate': 'today',
+            'startDate': '2019-01-01' 
           }
-        ]
-      }
-  # return analytics.reports().batchGet(body=body).execute()
+        }
   return analytics.userActivity().search(body=body).execute()
 
-def print_response(response):
-  for report in response.get('reports', []):
-    columnHeader = report.get('columnHeader', {})
-    dimensionHeaders = columnHeader.get('dimensions', [])
-    metricHeaders = columnHeader.get('metricHeader', {}).get('metricHeaderEntries', [])
-    rows = report.get('data', {}).get('rows', [])
+def save_response(response, client_id):
+  c_id = client_id.replace('.', '-')
+  print(f'> saving client {client_id}')
+  with open(f'./json/{c_id}.json', 'w', encoding='utf-8') as make_file:
+    json.dump(response, make_file, indent="\t")
 
-    for row in rows:
-      dimensions = row.get('dimensions', [])
-      dateRangeValues = row.get('metrics', [])
-      for header, dimension in zip(dimensionHeaders, dimensions):
-        print(header + ': ' + dimension)
+def get_client_id():
+  with open('data.csv', newline='') as csvfile:
+      data = list(csv.reader(csvfile))
 
-      for i, values in enumerate(dateRangeValues):
-        print('Date range (' + str(i) + ')')
-        for metricHeader, value in zip(metricHeaders, values.get('values')):
-          print(metricHeader.get('name') + ': ' + value)
-
+  arr = []
+  rows = data[7:]
+  for row in rows:
+      row = row[0]
+      arr.append(row)
+    
+  return arr
 
 def main():
 
   analytics = initialize_service()
-  response = get_report(analytics)
-  print_response(response)
+  client_ids = get_client_id()
+  for client_id in client_ids:
+    response = get_report(analytics, client_id)
+    save_response(response, client_id)
 
 if __name__ == '__main__':
   main()
