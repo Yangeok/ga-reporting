@@ -1,6 +1,11 @@
 # ga:userActivty
 
 ### Usage
+
+- `src` 안에 `csv`, `data`, `json` 폴더를 각각 생성합니다.
+  ```sh
+  $ cd src && mkdir csv data json
+  ```
 - 아래의 명령어로 패키지를 설치합니다.
   ```sh
   $ sh install.sh
@@ -13,17 +18,20 @@
   $ python index.py --noauth_local_webserver
   ```
 - 콘솔에 찍히는 링크로 들어가서 시키는대로 인증키를 생성해 붙여넣습니다.
+
   ```sh
   Go to the following link in your browser:
 
       https://accounts.google.com/o/oauth2/auth?client_id=<client_id>&redirect_uri=urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fanalytics.readonly&access_type=offline&response_type=code
   ```
+
 - 아래의 인증키를 입력하면, `credentials.dat`파일이 생성됩니다.
   ```sh
   Enter verification code: foo_bar_faz
   ```
 
 ### Process
+
 - 인증키로 새로운 인증키를 만듭니다.
 - 클라이언트 id가 들어있는 csv파일을 이용해 사용자 활동을 얻어냅니다.
 
