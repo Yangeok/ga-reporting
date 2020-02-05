@@ -1,18 +1,15 @@
-import argparse
+import sys, glob, itertools, json, csv, argparse, httplib2, time
 from oauth2client import client
 from oauth2client import file
 from oauth2client import tools
 from apiclient.discovery import build
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.file import Storage
-import httplib2
 import pandas as pd
 import numpy as np
-import json
-import csv
 
-TOKEN_FILE_NAME = 'credentials.dat' # client_secrets.json을 가공해서 나오는 파일입니다.
-CLIENT_SECRETS = 'client_secrets.json' # google developers에서 이 파일을 다운받을 수 있습니다.
+TOKEN_FILE_NAME = './data/credentials.dat' # client_secrets.json을 가공해서 나오는 파일입니다.
+CLIENT_SECRETS = './data/client_secrets.json' # google developers에서 이 파일을 다운받을 수 있습니다.
 SCOPES = 'https://www.googleapis.com/auth/analytics.readonly'
 VIEW_ID = '181430824' # query explorer에서 viewId를 찾아 붙여넣어주세요
 
@@ -49,13 +46,13 @@ def initialize_service():
     # credentials.refresh(http)
     # credentials.authorize(http)
     credentials = prepare_credentials()
-    print(credentials)
     http = httplib2.Http()
     http = credentials.authorize(http)
 
     return build('analyticsreporting', 'v4', http=http)
 
 def get_report(analytics, client_id):
+  print(client_id)
   body = {
           'viewId': VIEW_ID,
           'user': {
@@ -70,30 +67,43 @@ def get_report(analytics, client_id):
   return analytics.userActivity().search(body=body).execute()
 
 def save_response(response, client_id):
-  c_id = client_id.replace('.', '-')
-  print(f'> saving client {client_id}')
-  with open(f'./json/{c_id}.json', 'w', encoding='utf-8') as make_file:
+  print(f'> saving client {client_id}\n')
+  with open(f'./json/{client_id}.json', 'w', encoding='utf-8') as make_file:
     json.dump(response, make_file, indent="\t")
 
 def get_client_id():
-  with open('data.csv', newline='') as csvfile:
-      data = list(csv.reader(csvfile))
+  # with open('./csv/data.csv', newline='') as csvfile:
+  #     data = list(csv.reader(csvfile))
 
-  arr = []
-  rows = data[7:]
-  for row in rows:
-      row = row[0]
-      arr.append(row)
+  # arr = []
+  # rows = data[7:]
+  # for row in rows:
+  #     row = row[0]
+  #     arr.append(row)
     
+  # return arr
+  list_of_files = glob.glob('./csv/*.csv')
+  arr = []
+
+  for file_name in list_of_files:
+    rows = list(open(file_name, 'r'))[7:]
+    for row in rows:
+      row = row.split(',')[0]
+      arr.append(row)
+  
+  # print(arr)
+  print(f'\n> client_id length: {len(arr)}\n')
   return arr
 
 def main():
-
   analytics = initialize_service()
   client_ids = get_client_id()
   for client_id in client_ids:
+    time.sleep(10)
+    print('timeout...')
     response = get_report(analytics, client_id)
     save_response(response, client_id)
+  
 
 if __name__ == '__main__':
   main()
