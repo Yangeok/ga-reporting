@@ -1,4 +1,4 @@
-import sys, glob, itertools, json, csv, argparse, httplib2, time
+import os, sys, glob, itertools, json, csv, argparse, httplib2, time
 from oauth2client import client
 from oauth2client import file
 from oauth2client import tools
@@ -8,10 +8,13 @@ from oauth2client.file import Storage
 import pandas as pd
 import numpy as np
 
+START_DATE = os.environ['START_DATE']
+END_DATE = os.environ['END_DATE']
+
 TOKEN_FILE_NAME = './data/credentials.dat' # client_secrets.json을 가공해서 나오는 파일입니다.
 CLIENT_SECRETS = './data/client_secrets.json' # google developers에서 이 파일을 다운받을 수 있습니다.
 SCOPES = 'https://www.googleapis.com/auth/analytics.readonly'
-VIEW_ID = '181430824' # query explorer에서 viewId를 찾아 붙여넣어주세요
+VIEW_ID = '194260241' # query explorer에서 viewId를 찾아 붙여넣어주세요
 
 def prepare_credentials():
     parser = argparse.ArgumentParser(parents=[tools.argparser])
@@ -30,21 +33,6 @@ def prepare_credentials():
     return credentials
   
 def initialize_service():
-    # with open('credentials.dat') as json_file:
-    #   data = json.load(json_file)
-
-    # credentials = client.OAuth2Credentials(
-    #   client_id= data['client_id'],
-    #   client_secret= data['client_secret'],
-    #   access_token= data['access_token'],
-    #   refresh_token= data['refresh_token'],
-    #   token_expiry= data['token_expiry'],
-    #   token_uri= data['token_uri'],
-    #   user_agent= 'null',
-    # )
-    # http = httplib2.Http()
-    # credentials.refresh(http)
-    # credentials.authorize(http)
     credentials = prepare_credentials()
     http = httplib2.Http()
     http = credentials.authorize(http)
@@ -54,15 +42,18 @@ def initialize_service():
 def get_report(analytics, client_id):
   print(client_id)
   body = {
+          'dateRange': {
+            'startDate': '2020-01-01',
+            'endDate': '2020-02-05',
+            # 'startDate': END_DATE 
+            # 'endDate': START_DATE,
+          },
           'viewId': VIEW_ID,
           'user': {
             'type': 'CLIENT_ID', 
             'userId': client_id
           },
-          'dateRange': {
-            'endDate': 'today',
-            'startDate': '2019-01-01' 
-          }
+          'activityTypes': ['ECOMMERCE']          
         }
   return analytics.userActivity().search(body=body).execute()
 
@@ -72,26 +63,15 @@ def save_response(response, client_id):
     json.dump(response, make_file, indent="\t")
 
 def get_client_id():
-  # with open('./csv/data.csv', newline='') as csvfile:
-  #     data = list(csv.reader(csvfile))
-
-  # arr = []
-  # rows = data[7:]
-  # for row in rows:
-  #     row = row[0]
-  #     arr.append(row)
-    
-  # return arr
-  list_of_files = glob.glob('./csv/*.csv')
+  file_names = glob.glob('./csv/*.csv')
   arr = []
 
-  for file_name in list_of_files:
+  for file_name in file_names:
     rows = list(open(file_name, 'r'))[7:]
     for row in rows:
       row = row.split(',')[0]
       arr.append(row)
   
-  # print(arr)
   print(f'\n> client_id length: {len(arr)}\n')
   return arr
 
@@ -100,10 +80,8 @@ def main():
   client_ids = get_client_id()
   for client_id in client_ids:
     time.sleep(10)
-    print('timeout...')
     response = get_report(analytics, client_id)
     save_response(response, client_id)
   
-
 if __name__ == '__main__':
   main()
