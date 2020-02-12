@@ -1,52 +1,46 @@
-import os, sys, glob, itertools, json, csv, argparse, httplib2, time
+import os, glob, json, argparse, httplib2, time
+from apiclient.discovery import build
 from oauth2client import client
 from oauth2client import file
 from oauth2client import tools
-from apiclient.discovery import build
-from oauth2client.client import flow_from_clientsecrets
-from oauth2client.file import Storage
-import pandas as pd
-import numpy as np
 
 START_DATE = os.environ['START_DATE']
 END_DATE = os.environ['END_DATE']
 
 TOKEN_FILE_NAME = './data/credentials.dat' # client_secrets.json을 가공해서 나오는 파일입니다.
-CLIENT_SECRETS = './data/client_secrets.json' # google developers에서 이 파일을 다운받을 수 있습니다.
-SCOPES = 'https://www.googleapis.com/auth/analytics.readonly'
+CLIENT_SECRET = './data/client_secret.json' # google developers에서 이 파일을 다운받을 수 있습니다.
+SCOPE = 'https://www.googleapis.com/auth/analytics.readonly'
 VIEW_ID = '194260241' # query explorer에서 viewId를 찾아 붙여넣어주세요
 
-def prepare_credentials():
-    parser = argparse.ArgumentParser(parents=[tools.argparser])
-    flow = client.flow_from_clientsecrets(
-      CLIENT_SECRETS, 
-      scope=SCOPES,
-      message='%s is missing' % CLIENT_SECRETS
-    ) 
+def initialize_analyticsreporting():
+    parser = argparse.ArgumentParser(
+      formatter_class=argparse.RawDescriptionHelpFormatter,
+      parents=[tools.argparser]
+    )
     flags = parser.parse_args()
-    storage = Storage(TOKEN_FILE_NAME)
+    flow = client.flow_from_clientsecrets(
+      CLIENT_SECRET, 
+      scope=SCOPE,
+      message=tools.message_if_missing(CLIENT_SECRET)
+    ) 
+
+    storage = file.Storage(TOKEN_FILE_NAME)
     credentials = storage.get()
 
     if credentials is None or credentials.invalid:
         credentials = tools.run_flow(flow, storage, flags)
 
-    return credentials
-  
-def initialize_service():
-    credentials = prepare_credentials()
-    http = httplib2.Http()
-    http = credentials.authorize(http)
+    http = credentials.authorize(http=httplib2.Http())
+    analytics = build('analyticsreporting', 'v4', http=http)
 
-    return build('analyticsreporting', 'v4', http=http)
-
+    return analytics
+    
 def get_report(analytics, client_id):
   print(client_id)
   body = {
           'dateRange': {
-            'startDate': '2020-01-01',
-            'endDate': '2020-02-05',
-            # 'startDate': END_DATE 
-            # 'endDate': START_DATE,
+            'startDate': START_DATE, 
+            'endDate': END_DATE
           },
           'viewId': VIEW_ID,
           'user': {
@@ -76,7 +70,7 @@ def get_client_id():
   return arr
 
 def main():
-  analytics = initialize_service()
+  analytics = initialize_analyticsreporting()
   client_ids = get_client_id()
   for client_id in client_ids:
     time.sleep(10)
